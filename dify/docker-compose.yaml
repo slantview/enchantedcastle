@@ -1,0 +1,143 @@
+services:
+  api:
+    image: langgenius/dify-api:1.5.0
+    restart: always
+    environment:
+      - MODE=api
+      - STORAGE_TYPE=local
+      - STORAGE_LOCAL_PATH=storage
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=difyai123456
+      - DB_DATABASE=dify
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=difyai123456
+      - REDIS_DB=0
+      - PLUGIN_DAEMON_URL=${PLUGIN_DAEMON_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - PLUGIN_DAEMON_KEY=${PLUGIN_DAEMON_KEY}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./volumes/app/storage:/app/api/storage
+  worker:
+    image: langgenius/dify-api:1.5.0
+    restart: always
+    environment:
+      - MODE=worker
+      - STORAGE_TYPE=local
+      - STORAGE_LOCAL_PATH=storage
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=difyai123456
+      - DB_DATABASE=dify
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=difyai123456
+      - REDIS_DB=0
+      - CELERY_BROKER_URL=redis://:difyai123456@redis:6379/1
+      - PLUGIN_DAEMON_URL=${PLUGIN_DAEMON_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - PLUGIN_DAEMON_KEY=${PLUGIN_DAEMON_KEY}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./volumes/app/storage:/app/api/storage
+  web:
+    image: langgenius/dify-web:1.5.0
+    restart: always
+    environment:
+      - EDITION=SELF_HOSTED
+      - CONSOLE_API_URL=http://localhost/console/api
+      - APP_API_URL=http://localhost/api
+      - SERVICE_API_URL=http://localhost/api
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      PGUSER: postgres
+      POSTGRES_PASSWORD: difyai123456
+      POSTGRES_DB: dify
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./volumes/db/data:/var/lib/postgresql/data
+  redis:
+    image: redis:6-alpine
+    restart: always
+    command: redis-server --requirepass difyai123456
+    volumes:
+      - ./volumes/redis/data:/data
+  weaviate:
+    image: semitechnologies/weaviate:1.19.0
+    restart: always
+    environment:
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - AUTHENTICATION_APIKEY_USERS=steve@rude.la
+      - AUTHORIZATION_ADMINLIST_USERS=steve@rude.la
+    volumes:
+      - ./volumes/weaviate:/var/lib/weaviate
+  sandbox:
+    image: langgenius/dify-sandbox:0.2.12
+    restart: always
+    environment:
+      - API_KEY=dify-sandbox
+    volumes:
+      - ./volumes/sandbox/dependencies:/dependencies
+  ssrf_proxy:
+    image: ubuntu/squid:latest
+    restart: always
+    volumes:
+      - ./volumes/ssrf_proxy/squid.conf:/etc/squid/squid.conf
+  nginx:
+    image: nginx:latest
+    restart: always
+    volumes:
+      - ./volumes/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - api
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+  plugin_daemon:
+    image: langgenius/dify-plugin-daemon:0.1.1-local
+    restart: always
+    environment:
+      - SERVER_PORT=5003
+      - SERVER_KEY=${SECRET_KEY}
+      - DIFY_INNER_API_URL=http://api:5001
+      - DIFY_INNER_API_KEY=${SECRET_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=difyai123456
+      - REDIS_DB=0
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=difyai123456
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=dify_plugin
+      - PLUGIN_STORAGE_TYPE=local
+      - PLUGIN_STORAGE_LOCAL_ROOT=/app/storage
+      - PLUGIN_WORKING_PATH=/app/storage/cwd
+      - PLUGIN_REMOTE_INSTALL_HOST=${PLUGIN_REMOTE_INSTALL_HOST}
+      - PLUGIN_REMOTE_INSTALL_PORT=${PLUGIN_REMOTE_INSTALL_PORT}
+      - PLUGIN_REMOTE_INSTALLING_ENABLED=false
+      - MAX_PLUGIN_PACKAGE_SIZE=52428800
+      - MAX_BUNDLE_PACKAGE_SIZE=52428800
+      - PYTHON_ENV_INIT_TIMEOUT=120
+      - MAX_SERVERLESS_TRANSACTION_TIMEOUT=600
+    volumes:
+      - ./volumes/plugins:/app/storage
+    ports:
+      - "5003:5003"
+    depends_on:
+      - db
+      - redis
+      - api
+    networks:
+      - default

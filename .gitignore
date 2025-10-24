@@ -1,0 +1,36 @@
+# Sensitive files - NEVER commit these
+.env
+.env.*.example  # Only .env.example is safe
+.envrc
+!.env.example
+!dify/.env.example
+!k3s/.env.example
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+
+# Secrets and passwords
+*secret*
+*password*
+
+# Database and configuration backups
+*.sql
+*.dump
+*.backup*
+*_backup_*
+*_config_backup_*
+
+# Runtime data
+dify/volumes/db/data/
+dify/volumes/redis/data/
+dify/volumes/app/storage/privkeys/
+
+# kubeconfig files - contains sensitive cluster credentials
+k3s/kubeconfig/kubeconfig.yaml
+k3s/kubeconfig/**/*.yaml
+!k3s/kubeconfig/kubeconfig.example.yaml

@@ -1,0 +1,11 @@
+# Kubeconfig files - credentials stored in 1Password
+kubeconfig/
+*.kubeconfig
+kubeconfig-*.yaml
+
+# Docker volumes
+k3s-server/
+k3s-agent-karuna/
+
+# Local temp files
+.env.local
