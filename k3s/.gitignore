@@ -9,3 +9,5 @@ k3s-agent-karuna/
 
 # Local temp files
 .env.local
+.direnv/
+.env

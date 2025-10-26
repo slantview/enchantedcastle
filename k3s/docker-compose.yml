@@ -12,13 +12,12 @@ services:
       - K3S_TOKEN=${K3S_TOKEN}
       - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
       - K3S_KUBECONFIG_MODE=666
-      - K3S_API_SERVER_ENDPOINT=https://tower.enchantedcastle.house:6443
     volumes:
       - k3s-server:/var/lib/rancher/k3s
       - ./kubeconfig:/output
     networks:
       - k3s-network
-    command: server --bind-address=0.0.0.0 --tls-san=tower.enchantedcastle.house --node-label=hostname=tower
+    command: server --bind-address=0.0.0.0 --advertise-address=192.168.4.47 --tls-san=tower.enchantedcastle.house --tls-san=tower --node-label=hostname=tower --node-label=cluster=tower
     healthcheck:
       test: ["CMD", "sh", "-c", "test -f /output/kubeconfig.yaml"]
       interval: 5s
@@ -26,26 +25,9 @@ services:
       retries: 60
       start_period: 10s
 
-  k3s-agent-karuna:
-    image: rancher/k3s:latest
-    container_name: k3s-agent-karuna
-    hostname: karuna
-    privileged: true
-    environment:
-      - K3S_TOKEN=${K3S_TOKEN}
-      - K3S_URL=https://k3s-server:6443
-    volumes:
-      - k3s-agent-karuna:/var/lib/rancher/k3s
-    networks:
-      - k3s-network
-    command: agent --node-label=hostname=karuna
-    depends_on:
-      - k3s-server
-
 networks:
   k3s-network:
     driver: bridge
 
 volumes:
   k3s-server:
-  k3s-agent-karuna:
